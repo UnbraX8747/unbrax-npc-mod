@@ -1,4 +1,4 @@
-name: Jar derle
+name: Jar Derle
 
 on:
   push:
@@ -7,39 +7,73 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+    steps:
+      - name: Kaynak kodunu indir
+        uses: actions/checkout@v4
+
+      - name: Java 21 kur
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: '21'
 
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: current
+      - name: Gradle kur
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Projeyi kontrol et
+        run: |
+          echo "=== DOSYALAR ==="
+          find . -maxdepth 5 -type f | sort
 
       - name: Fabric API sürümünü bul
         run: |
-          V=$(curl -s -A "UnbraX-AFK-NPC-build" 'https://api.modrinth.com/v2/project/fabric-api/version?game_versions=%5B%221.21.11%22%5D&loaders=%5B%22fabric%22%5D' | jq -r '.[0].version_number')
+          V=$(curl -s -A "UnbraX-AFK-NPC-build" \
+          'https://api.modrinth.com/v2/project/fabric-api/version?game_versions=%5B%221.21.11%22%5D&loaders=%5B%22fabric%22%5D' \
+          | jq -r '.[0].version_number')
+
           echo "Fabric API: $V"
-          if [ -z "$V" ] || [ "$V" = "null" ]; then echo "Fabric API sürümü bulunamadı"; exit 1; fi
+
+          if [ -z "$V" ] || [ "$V" = "null" ]; then
+            echo "Fabric API sürümü bulunamadı"
+            exit 1
+          fi
+
           echo "FABRIC_VERSION=$V" >> "$GITHUB_ENV"
 
-      - name: Derle
-        run: gradle build --no-daemon -Pfabric_version="$FABRIC_VERSION"
-
-      - name: Jar'ın dolu olduğunu kontrol et
+      - name: JAR derle
         run: |
-          JAR=$(ls build/libs/*.jar | grep -v -- '-sources' | head -n 1)
-          echo "Jar: $JAR"
-          unzip -l "$JAR"
-          unzip -l "$JAR" | grep -q "fabric.mod.json" || { echo "HATA: fabric.mod.json jar'da yok"; exit 1; }
-          unzip -l "$JAR" | grep -q "com/unbrax/afknpc/UnbraXAfkNpc.class" || { echo "HATA: mod sınıfı jar'da yok"; exit 1; }
+          gradle clean build --no-daemon -Pfabric_version="$FABRIC_VERSION"
 
-      - uses: actions/upload-artifact@v4
+      - name: JAR kontrol et
+        run: |
+          echo "=== BUILD/LIBS ==="
+          ls -lah build/libs/
+
+          JAR=$(find build/libs -type f -name "*.jar" ! -name "*-sources.jar" | head -n 1)
+
+          if [ -z "$JAR" ]; then
+            echo "JAR bulunamadı!"
+            exit 1
+          fi
+
+          echo "Jar: $JAR"
+
+          echo "=== JAR İÇERİĞİ ==="
+          unzip -l "$JAR"
+
+          unzip -l "$JAR" | grep -q "fabric.mod.json" || {
+            echo "HATA: fabric.mod.json jar'da yok"
+            exit 1
+          }
+
+          unzip -l "$JAR" | grep -q "UnbraXAfkNpc.class" || {
+            echo "HATA: UnbraXAfkNpc.class jar'da yok"
+            exit 1
+          }
+
+      - name: JAR'ı yükle
+        uses: actions/upload-artifact@v4
         with:
           name: UnbraX-AFK-NPC-jar
-          path: |
-            build/libs/*.jar
-            !build/libs/*-sources.jar
+          path: build/libs/*.jar
