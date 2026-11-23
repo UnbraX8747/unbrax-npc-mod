@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "unbrax_afk_npc",
+  "version": "${version}",
+  "name": "UnbraX AFK npc (single player)",
+  "description": "/player <isim> ile hareket etmeyen gerçek oyuncu botu oluşturur. Etrafındaki chunklar yüklü kalır.",
+  "authors": ["UnbraX"],
+  "license": "All-Rights-Reserved",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.unbrax.afknpc.UnbraXAfkNpc"]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.0",
+    "minecraft": "1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
